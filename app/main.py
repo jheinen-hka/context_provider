@@ -6,6 +6,8 @@ from app.model.context_models import (
     ContextEnvelope,
 )
 from app.service.context_service import build_snapshot, build_delta
+import asyncio
+from app.push.push_loop import push_loop
 
 app = FastAPI(
     title="context_provider",
@@ -115,3 +117,13 @@ async def get_context_delta(
         since_hash=sinceHash,
     )
     return envelope
+
+
+@app.on_event("startup")
+async def startup_event() -> None:
+    """
+    FastAPI startup hook that kicks off the background push loop.
+
+    The loop will only run if PUSH_ENABLED=true and a PUSH_WEBHOOK_URL is configured.
+    """
+    asyncio.create_task(push_loop())
